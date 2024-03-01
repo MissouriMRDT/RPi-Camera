@@ -20,7 +20,7 @@ Script to stream cameras from the Raspberry Pi's.
    - `$ sudo apt upgrade`
    - `$ sudo apt install ffmpeg`
 
-4. Disable wifi (this might be optional):
+4. Disable wifi (I think if you do this it breaks? But it should be connecting over ethernet? Testing is needed...):
 
    - `$ sudo nano /boot/firmware/config.txt`
    - Add the line: `dtoverlay=disable-wifi`
