@@ -1,4 +1,5 @@
-ip="192.168.100.10"
+#!/bin/bash
+ip="169.254.181.253"
 video_res="320x240"
 extra_flags=" -loglevel warning"
 encoding=""
@@ -8,5 +9,4 @@ ffmpeg $extra_flags -video_size $video_res -i /dev/video2 $encoding -f mpegts ud
 ffmpeg $extra_flags -video_size $video_res -i /dev/video4 $encoding -f mpegts udp://$ip:1183 &
 ffmpeg $extra_flags -video_size $video_res -i /dev/video6 $encoding -f mpegts udp://$ip:1184 &
 
-date
-echo "streams running as background process, enter 'sudo killall ffmpeg' to stop them"
+# streams running as background process, enter 'sudo killall ffmpeg' to stop them
