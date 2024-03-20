@@ -38,12 +38,9 @@ Script to stream cameras from the Raspberry Pi's.
 
 7. Set a static IP:
 
-   - `$ sudo nano /etc/dhcpcd.conf` and add the lines:
-```
-interface eth0
-static ip_address=192.168.4.100/24
-static routers=192.168.4.1
-```
+   - `$ sudo nano /etc/network/interfaces`
+   - Copy the contents of interfaces to the end.
+   - Save and close.
 
 7. Check to make sure it works:
 
