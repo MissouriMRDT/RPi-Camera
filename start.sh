@@ -1,5 +1,5 @@
 #!/bin/bash
-ip="169.254.181.253"
+ip="192.168.100.10"
 video_res="320x240"
 extra_flags=" -loglevel warning"
 encoding=""
