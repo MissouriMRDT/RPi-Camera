@@ -39,7 +39,7 @@ Script to stream cameras from the Raspberry Pi's.
 7. Set a static IP:
 
    - `$ sudo nano /etc/network/interfaces`
-   - Copy the contents of interfaces to the end.
+   - Copy the contents of interfaces to the end (changing the IP as needed).
    - Save and close.
 
 7. Check to make sure it works:
