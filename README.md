@@ -14,31 +14,27 @@ Script to stream cameras from the Raspberry Pi's.
    - Select "System Options > Boot / Auto Login > Console Autologin"
    - Select "System Options > Wireless LAN > (go throught the setup process)"
 
-3. Install ffmpeg:
+3. Install software:
 
    - `$ sudo apt update`
    - `$ sudo apt upgrade`
    - `$ sudo apt install ffmpeg`
+   - `$ sudo apt install v4l-utils`
 
-4. Disable wifi (I think if you do this it breaks? But it should be connecting over ethernet? Testing is needed...):
-
-   - `$ sudo nano /boot/firmware/config.txt`
-   - Add the line: `dtoverlay=disable-wifi`
-
-5. Copy start.sh to `/home/pi/start.sh`.
+4. Copy start.sh to `/home/pi/start.sh`.
 
    - Make sure it is executable!
    - Change the ports accordingly (see "Port Info").
    - You may also have to change the destination IP (see "Port Info").
 
-6. start.sh needs to run on boot, after network has been established. For this, setup a systemd service:
+5. start.sh needs to run on boot, after network has been established. For this, setup a systemd service:
 
    - `$ sudo systemctl edit --force --full cameras.service`
    - Copy the contents of cameras.service into the text editor.
    - Save and close.
    - `$ sudo systemctl enable cameras.service`
 
-7. Set a static IP:
+6. Set a static IP:
 
    - `$ sudo nano /etc/network/interfaces`
    - Copy the contents of interfaces to the end
