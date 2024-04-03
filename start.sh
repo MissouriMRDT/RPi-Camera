@@ -29,7 +29,7 @@ printf "$(cat log.txt)\n\n" | while IFS="" ; read -r line ; do
 
     # I know, there should be a way of setting a variable to the output of a
     # boolean expression, but I don't think there is...
-    if [[ "$line" =~ ^USB* ]]; then
+    if [[ "$line" =~ "(usb" ]]; then
       isUSB=true
     else
       isUSB=false
