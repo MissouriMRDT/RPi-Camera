@@ -1,12 +1,38 @@
 #!/bin/bash
-ip="192.168.100.10"
-video_res="320x240"
-extra_flags=" -loglevel warning"
-encoding=""
 
-ffmpeg $extra_flags -video_size $video_res -i /dev/video0 $encoding -f mpegts udp://$ip:1181 &
-ffmpeg $extra_flags -video_size $video_res -i /dev/video2 $encoding -f mpegts udp://$ip:1182 &
-ffmpeg $extra_flags -video_size $video_res -i /dev/video4 $encoding -f mpegts udp://$ip:1183 &
-ffmpeg $extra_flags -video_size $video_res -i /dev/video6 $encoding -f mpegts udp://$ip:1184 &
+declare -a argumentList
+argumentList=()
+declare -a portList
+portList=("1181" "1182" "1183" "1184")
+# We only want to stream the usb devices. This flag is set if the previous
+# non-tabbed line started with "USB"
+isUSB=true
 
-# streams running as background process, enter 'sudo killall ffmpeg' to stop them
+# The printf is to ensure at least two trailing newlines.
+# This is important to the loop.
+# printf "$(v4l2-ctl --list-devices)\n\n" | while IFS="" ; read -r line ; do
+printf "$(cat log.txt)\n\n" | while IFS="" ; read -r line ; do
+  if [[ "$line" = $'\t'* ]]; then
+    if [ $isUSB = true ]; then
+      # xargs trims the tab off the front of the line
+      argumentList+=($(echo "$line" | xargs))
+    fi
+  else
+    if [ -n "$argumentList" ]; then
+      if [ $isUSB = true ]; then
+        bash startOne.sh ${portList[0]} "${argumentList[@]}" &
+        # this splicing pops off the first element
+        portList=("${portList[@]:1}")
+      fi
+      argumentList=()
+    fi
+
+    # I know, there should be a way of setting a variable to the output of a
+    # boolean expression, but I don't think there is...
+    if [[ "$line" =~ ^USB* ]]; then
+      isUSB=true
+    else
+      isUSB=false
+    fi
+  fi
+done

@@ -21,13 +21,15 @@ Script to stream cameras from the Raspberry Pi's.
    - `$ sudo apt install ffmpeg`
    - `$ sudo apt install v4l-utils`
 
-4. Copy start.sh to `/home/pi/start.sh`.
+4. Copy start.sh and startOne.sh to `/home/pi/`.
 
-   - Make sure it is executable!
-   - Change the ports accordingly (see "Port Info").
+   - Make sure they are executable!
+   - Change the ports accordingly, which means you have to decide what the IP
+     of this specific Pi will be (see "Port Info").
    - You may also have to change the destination IP (see "Port Info").
 
-5. start.sh needs to run on boot, after network has been established. For this, setup a systemd service:
+5. start.sh needs to run on boot, after network has been established. For this,
+   setup a systemd service:
 
    - `$ sudo systemctl edit --force --full cameras.service`
    - Copy the contents of cameras.service into the text editor.
