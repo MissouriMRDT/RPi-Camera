@@ -14,6 +14,5 @@ encoding=""
 
 # This loops through all but the first argument (the port).
 for device in "${@:2}" ; do
-#   sleep 1 && echo "starting" $device $1 && sleep 8
   ffmpeg $extra_flags $video_res -i "$device" $encoding -f mpegts udp://$ip:$1
 done
