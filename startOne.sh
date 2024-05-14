@@ -10,9 +10,10 @@ video_res="-video_size 320x240"
 extra_flags="-loglevel warning"
 #extra_flags=""
 
-encoding=""
+input_flags=""
+output_flags="-b:v 128k -maxrate 128k"
 
 # This loops through all but the first argument (the port).
 for device in "${@:2}" ; do
-  ffmpeg $extra_flags $video_res -i "$device" $encoding -f mpegts udp://$ip:$1
+  ffmpeg $extra_flags $video_res -i "$device" $input_flags -f mpegts $output_flags udp://$ip:$1
 done

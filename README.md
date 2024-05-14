@@ -20,8 +20,10 @@ Script to stream cameras from the Raspberry Pi's.
    - `$ sudo apt upgrade`
    - `$ sudo apt install ffmpeg`
    - `$ sudo apt install v4l-utils`
+   - `$ sudo apt install vsftpd`
+   - `$ sudo apt install fswebcam`
 
-4. Copy start.sh and startOne.sh to `/home/pi/`.
+4. Run `init.sh`! It should make all the files executable but double check if needed.
 
    - Make sure they are executable!
    - Change the ports accordingly, which means you have to decide what the IP

@@ -3,10 +3,11 @@
 declare -a argumentList
 argumentList=()
 declare -a portList
-portList=("1185" "1186" "1187" "1188")
+portList=("1181" "1182" "1183" "1184")
 # We only want to stream the usb devices. This flag is set if the previous
 # non-tabbed line started with "USB"
 isUSB=true
+python listenForScreenshots.py
 
 # The printf is to ensure at least two trailing newlines.
 # This is important to the loop.
