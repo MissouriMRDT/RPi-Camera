@@ -33,6 +33,11 @@ cp -r RoveComm_Python $HOME
 # Make Shell Scripts Executable
 chmod +x ~/*.sh
 
+# Make Screenshots Directory
+if [ ! -d "~/Screenshots" ]; then
+    mkdir -p "~/Screenshots"
+fi
+
 # Exit Script
 exit 0
 
