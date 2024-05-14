@@ -30,6 +30,9 @@ sudo cp cameras.service /etc/systemd/system/cameras.service
 find . -maxdepth 1 -name '*.sh' ! -name "init.sh" -exec cp {} $HOME \;
 cp -r RoveComm_Python $HOME
 
+# Move Interface Files
+sudo mv "$HOME/interfaces" /etc/network/interfaces
+
 # Make Shell Scripts Executable
 chmod +x ~/*.sh
 
