@@ -6,5 +6,4 @@ def takeScreenshot(packet):
     s = subprocess.call(f"takeScreenshot.sh {index}")
 
 rovecomm_node = RoveComm()
-    rovecomm_node.set_callback(manifest["Camera1"]["Commands"]["ExportScreenshots"]["dataId"], takeScreenshot )
-    
+rovecomm_node.set_callback(manifest["Camera1"]["Commands"]["ExportScreenshots"]["dataId"], takeScreenshot )

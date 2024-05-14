@@ -24,7 +24,7 @@ elif [ "$camera_pi_board_number" -eq 2 ]; then
 fi
 
 # Copy the service to the system directory
-cp cameras.service /etc/systemd/system/cameras.service
+sudo cp cameras.service /etc/systemd/system/cameras.service
 
 # Copy the shared files to the $HOME directory
 find . -maxdepth 1 -name '*.sh' ! -name "init.sh" -exec cp {} $HOME \;
@@ -34,8 +34,8 @@ cp -r RoveComm_Python $HOME
 chmod +x ~/*.sh
 
 # Make Screenshots Directory
-if [ ! -d "~/Screenshots" ]; then
-    mkdir -p "~/Screenshots"
+if [ ! -d "$HOME/Screenshots" ]; then
+    mkdir -p "$HOME/Screenshots"
 fi
 
 # Exit Script
