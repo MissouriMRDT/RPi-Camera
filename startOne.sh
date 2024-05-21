@@ -10,8 +10,8 @@ video_res="-video_size 320x240"
 extra_flags="-loglevel warning"
 #extra_flags=""
 
-input_flags=""
-output_flags="-b:v 128k -maxrate 128k"
+input_flags="-vf eq=brightness=-0.2:contrast=0.6"
+output_flags="-b:v 128k -maxrate 128k -v 0"
 
 # This loops through all but the first argument (the port).
 for device in "${@:2}" ; do
