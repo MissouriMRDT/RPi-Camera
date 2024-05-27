@@ -4,14 +4,14 @@
 
 ip="192.168.100.10"
 
-video_res="-video_size 320x240"
+video_res="-video_size 480x320"
 #video_res=""
 
 extra_flags="-loglevel warning"
 #extra_flags=""
 
 input_flags="-vf eq=brightness=-0.2:contrast=0.6"
-output_flags="-b:v 128k -maxrate 128k -v 0"
+output_flags="-b:v 512k -maxrate 524k -v 0"
 
 # This loops through all but the first argument (the port).
 for device in "${@:2}" ; do

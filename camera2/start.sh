@@ -18,6 +18,8 @@ touch "$log_file"
 > "$log_file"
 
 python listenForScreenshots.py &
+python listenForStreamToggle.py &
+
 
 # We only want to stream the usb devices. This flag is set if the previous
 # non-tabbed line started with "USB"
