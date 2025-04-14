@@ -30,14 +30,15 @@ port=$(echo "$line" | cut -d ' ' -f 1)
 device=$(echo "$line" | cut -d ' ' -f 2)
 
 # Replace the line in stream_log.txt with a blank line
-sed -i "$((camera_index + 1))s/.*/ /" stream_log.txt
+sed -i "$((camera_index + 1))s#.*# #" stream_log.txt
 
 # Replace the corresponding line in stopped_stream.txt with the original line
-sed -i "$((camera_index + 1))s/.*/$line/" "$stopped_log"
+sed -i "$((camera_index + 1))s#.*#$line#" "$stopped_log"
 
 # Kill the process using fuser
-fuser -k "${port}/udp"
+fuser -k "$device"
 
 echo "Stopped streaming for device: $device on port: $port"
 
 exit 0
+

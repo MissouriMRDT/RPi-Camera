@@ -34,10 +34,27 @@ def takeScreenshot(packet):
         rovecomm_node.write(packet, False)
 
 
+def toggleStream(packet):
+    print("PACKET RECIEVED")
+    index = packet.data[0]
+    startStream = packet.data[1]
+    print(index, startStream)
+    if startStream == 0:
+        print("STOPPING STREAM...")
+        subprocess.Popen(["./stopStream.sh", str(index)])
+    elif startStream == 1:
+        print("STARTING STREAM...")
+        subprocess.Popen(["./startStream.sh", str(index)])
+    else:
+        print("Invalid startStream value")
+
+
 def main():
     rovecomm_node.set_callback(manifest["Camera1"]["Commands"]["TakePicture"]["dataId"], takeScreenshot)
+    rovecomm_node.set_callback(manifest["Camera1"]["Commands"]["ToggleStream1"]["dataId"], toggleStream)
     while True:
-        pass
+        time.sleep(2.0)
 
-main()
+if __name__ == "__main__":
+    main()
 

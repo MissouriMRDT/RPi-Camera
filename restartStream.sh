@@ -12,24 +12,18 @@ check_ffmpeg() {
     return $?
 }
 
-# Main function to restart ffmpeg streams
+# Function to restart ffmpeg streams
 restart_streams() {
-    local ip="192.168.100.10"
-    local video_res="-video_size 480x320"
-    local extra_flags="-loglevel warning"
-    local input_flags="-vf eq=brightness=-0.2:contrast=0.6"
-    local output_flags="-b:v 512k -maxrate 524k -v 0"
-
     # Read ports and devices from log file
     while IFS= read -r line; do
         local port=$(echo "$line" | cut -d" " -f1)
         local device=$(echo "$line" | cut -d" " -f2)
         if ! check_ffmpeg "$port" "$device"; then
             echo "FFmpeg stream on port $port stopped. Restarting..."
-            # Restart ffmpeg stream
-            ffmpeg $extra_flags $video_res -i "$device" $input_flags -f mpegts $output_flags "udp://$ip:$port" &
+            # Restart ffmpeg stream using startOne.sh
+            ./startOne.sh "$port" "$device" &
         fi
-    done < "$log_file"  # Ensure to read from the log file
+    done < "$log_file"
 }
 
 # Main function
@@ -39,7 +33,7 @@ main() {
         touch "$log_file"
         # Restart ffmpeg streams
         restart_streams
-        sleep 1
+        sleep 3
     done
 }
 

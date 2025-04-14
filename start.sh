@@ -3,7 +3,7 @@
 declare -a argumentList
 argumentList=()
 declare -a portList
-portList=("1185" "1186" "1187" "1188")
+portList=("8100" "8200" "8300" "8400")
 
 declare -a PIDS
 export PIDS
@@ -18,8 +18,6 @@ touch "$log_file"
 > "$log_file"
 
 python listenForScreenshots.py &
-python listenForStreamToggle.py &
-
 
 # We only want to stream the usb devices. This flag is set if the previous
 # non-tabbed line started with "USB"
@@ -58,5 +56,16 @@ printf "$(v4l2-ctl --list-devices)\n\n" | while IFS="" ; read -r line ; do
   fi
 done
 
+# Ensure stopped_stream.txt exists and is writable
+stopped_log="stopped_stream.txt"
+touch "$stopped_log"
+
+# Ensure stopped_stream.txt has the same number of lines as stream_log.txt
+while IFS= read -r line; do
+    echo "" >> "$stopped_log"
+done < stream_log.txt
+
+
 # Call the monitoring script
 ./restartStream.sh
+

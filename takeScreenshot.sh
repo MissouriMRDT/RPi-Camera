@@ -1,7 +1,7 @@
 #!/bin/bash
 
 declare -a portList
-portList=("1185" "1186" "1187" "1188")
+portList=("1181" "1182" "1183" "1184")
 
 # Function to capture image using selected camera
 capture_image() {
@@ -13,8 +13,31 @@ capture_image() {
     # Create the directory if it doesn't exist
     mkdir -p "$output_dir" || { echo "Error: Unable to create directory $output_dir"; exit 1; }
 
-    # Capture image
-    if ! fswebcam -r 2560x1440 --delay 1 --skip 200 --no-banner "$output_file" -d "$device"; then
+    # Check if any process is using the device and terminate them
+    fuser -k "$device"
+
+    # Timeout in seconds for checking device availability
+    local timeout_seconds=5
+    local start_time=$(date +%s)
+    local end_time=$((start_time + timeout_seconds))
+
+    # Check if device becomes available within the timeout period
+    while true; do
+        if ! fuser -s "$device"; then
+            break
+        fi
+
+        if [ "$(date +%s)" -ge "$end_time" ]; then
+            echo "Error: Device $device is busy. Timeout reached."
+            exit 1
+        fi
+
+        sleep 1
+    done
+
+    # Capture image with additional options for troubleshooting
+    if ! fswebcam -d "$device" -r 2560x1440  --no-banner --jpeg 85 --skip 100 "$output_file"; then
+    # if ! ffmpeg -i "$device" -frames:v 1 "$output_file"; then
         echo "Error: Failed to capture image using device $device"
         exit 1
     fi
@@ -26,33 +49,6 @@ capture_image() {
 get_usb_cameras() {
     v4l2-ctl --list-devices | awk '/usb/{getline; print $NF}'
 }
-
-# Function to get PID of ffmpeg process
-get_ffmpeg_pid() {
-    local device="$1"
-    pgrep -f "ffmpeg.*$device"
-}
-
-# Function to stop ffmpeg process
-stop_ffmpeg_process() {
-    local device="$1"
-    local pid
-    pid=$(get_ffmpeg_pid "$device")
-    if [ -n "$pid" ]; then
-        echo "Stopping ffmpeg process (PID: $pid)..."
-        kill -TSTP "$pid" >/dev/null 2>&1
-        sleep 1
-        # Check if process is still running
-        if ps -p "$pid" > /dev/null; then
-            # If process is still running, send SIGKILL
-            echo "Sending SIGKILL to ffmpeg process (PID: $pid)..."
-            kill -KILL "$pid" >/dev/null 2>&1
-        fi
-    else
-        echo "No ffmpeg process found for device $device"
-    fi
-}
-
 
 # Main function
 main() {
@@ -72,8 +68,6 @@ main() {
 
     # Check if the index is within the range of available USB camera devices
     local camera_index="$1"
-    local usb_cameras
-    usb_cameras=($(get_usb_cameras))
     local num_cameras="${#usb_cameras[@]}"
 
     if (( camera_index < 0 || camera_index >= num_cameras )); then
@@ -85,15 +79,12 @@ main() {
     selected_device="${usb_cameras[$camera_index]}"
     echo "Selected device: $selected_device"
 
-    # Stop ffmpeg process
-    stop_ffmpeg_process "$selected_device"
-
     # Capture image
     echo "Capturing image..."
     capture_image
     echo "Image captured."
-
 }
 
 # Call main function
 main "$@"
+
