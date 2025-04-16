@@ -7,7 +7,7 @@ After=network-online.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi
-ExecStart=/home/pi/start.sh
+ExecStart=/home/pi/server.py
 KillMode=process
 
 [Install]

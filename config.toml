@@ -1,0 +1,66 @@
+# Output ports
+ports = [8100, 8200, 8300, 8400]
+# Output ip
+ip = "192.168.100.10"
+ffmpeg_path = "/bin/ffmpeg"
+# Arguments for ffmpeg
+# Substitutions:
+# $index: camera index
+# $input: input device file
+# $ip: output ip
+# $port: output port
+ffmpeg_arguments = [
+    "-f",
+    "video4linux2",
+    "-video_size",
+    "320x240",
+    "-i",
+    "$input",
+    "-filter:v",
+    "eq=brightness=-0.2:contrast=0.6,drawtext=text=%{gmtime\\:%X}:fontsize=32:fontcolor=red",
+    "-c:v",
+    "libvpx",
+    "-quality",
+    "good",
+    "-cpu-used",
+    "4",
+    "-g",
+    "5",
+    "-error-resilient",
+    "1",
+    "-auto-alt-ref",
+    "1",
+    "-f",
+    "rtp",
+    "-b:v",
+    "512k",
+    "-maxrate",
+    "512k",
+    "rtp://$ip:$port?pkt_size=1200",
+]
+fswebcam_path = "/bin/fswebcam"
+# Substitutions:
+# $input: input device file
+# $output: output file
+fswebcam_arguments = [
+    "-d",
+    "$input",
+    "-r",
+    "2560x1440",
+    "--no-banner",
+    "--jpeg",
+    "85",
+    "--skip",
+    "100",
+    "$output",
+]
+# Screenshot output directory
+screenshot_dir = "/home/pi/Screenshots"
+
+[manifest]
+device = "Camera1"
+stop_restart_command = "ToggleStream1"
+screenshot_command = "TakePicture"
+screenshot_telemetry = "PictureTaken1"
+connected_cameras_telemetry = "AvailableCameras"
+streams_telemetry = "StreamingCameras"
