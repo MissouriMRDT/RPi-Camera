@@ -10,6 +10,7 @@ ffmpeg_path = "/bin/ffmpeg"
 # $ip: output ip
 # $port: output port
 ffmpeg_arguments = [
+    "-hide_banner",
     "-f",
     "video4linux2",
     "-video_size",
@@ -17,7 +18,7 @@ ffmpeg_arguments = [
     "-i",
     "$input",
     "-filter:v",
-    "eq=brightness=-0.2:contrast=0.6,drawtext=text=%{gmtime\\:%X}:fontsize=32:fontcolor=red",
+    "eq=brightness=-0.2:contrast=0.6,drawtext=text=%{gmtime\\\\:%X}:fontsize=32:fontcolor=red",
     "-c:v",
     "libvpx",
     "-quality",
@@ -59,8 +60,8 @@ screenshot_dir = "/home/pi/Screenshots"
 
 [manifest]
 device = "Camera1"
-stop_restart_command = "ToggleStream1"
+stop_restart_command = "ToggleStream"
 screenshot_command = "TakePicture"
-screenshot_telemetry = "PictureTaken1"
+screenshot_telemetry = "PictureTaken"
 connected_cameras_telemetry = "AvailableCameras"
 streams_telemetry = "StreamingCameras"

@@ -1,37 +1,31 @@
 # RPi-Camera
 
-Script to stream cameras from the Raspberry Pi's.
+Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm control.
 
-# Setup
+## Setup
 
-1. Download and Install Raspberry Pi OS Lite (32 bit).
+1. Download and install Raspberry Pi OS Lite (64 bit).
 
-   - https://www.raspberrypi.com/software/operating-systems/
+   - <https://www.raspberrypi.com/software/operating-systems/>
 
-2. Do some config:
+2. Configure the system:
 
    - `$ sudo raspi-config`
-   - Select "System Options > Boot / Auto Login > Console Autologin"
-   - Select "System Options > Wireless LAN > (go throught the setup process)"
+   - Select "System Options > Boot / Auto Login > Console Autologin".
+   - Select "System Options > Wireless LAN" and connect to a network.
 
 3. Install software:
 
    - `$ sudo apt update`
    - `$ sudo apt upgrade`
-   - `$ sudo apt install ffmpeg`
-   - `$ sudo apt install v4l-utils`
-   - `$ sudo apt install vsftpd`
-   - `$ sudo apt install fswebcam`
+   - `$ sudo apt install ffmpeg v4l-utils vsftpd fswebcam`
 
-4. Run `init.sh`! It should make all the files executable but double check if needed.
+4. Configure `server.py`:
 
-   - Make sure they are executable!
-   - Change the ports accordingly, which means you have to decide what the IP
-     of this specific Pi will be (see "Port Info").
-   - You may also have to change the destination IP (see "Port Info").
+   - Make `server.py` executable.
+   - Edit `ports` and `manifest.device` in `config.toml`.
 
-5. start.sh needs to run on boot, after network has been established. For this,
-   setup a systemd service:
+5. `server.py` should be started on boot, after network has been established. Setup a systemd service:
 
    - `$ sudo systemctl edit --force --full cameras.service`
    - Copy the contents of cameras.service into the text editor.
@@ -40,30 +34,33 @@ Script to stream cameras from the Raspberry Pi's.
 
 6. Set a static IP:
 
+   - In `sudo nmtui`, disable `wlan0` interface and configure and set a static IP for `eth0` that matches the RoveComm manifest.
+   - OR
    - `$ sudo nano /etc/network/interfaces`
-   - Copy the contents of interfaces to the end
+   - Copy the contents of interfaces to the end.
    - Change the IP accordingly (see "Port Info").
    - Save and close.
 
-7. Check to make sure it works:
+7. Check operation:
 
-   - `$ sudo reboot now`
-   - `$ htop`
-   - You should see ffmpeg processes!
-   - "q" to quit.
+   - Start with `sudo systemctl start cameras`.
+   - Monitor status with `sudo systemctl status cameras`.
+   - Follow logs with `sudo journalctl -fu cameras`.
+   - Monitor FFmpeg subprocess and resource utilization `htop`.
 
-# Port Info
+## Port Info
 
-The basestation IP should be `192.168.100.10`.
+The Basestation IP (`config.toml` `ip`) should be `192.168.100.10`.
 
 The Raspberry Pi IP/port combos should be:
-```
-192.168.4.100:1181
-192.168.4.100:1182
-192.168.4.100:1183
-192.168.4.100:1184
-192.168.4.101:1185
-192.168.4.101:1186
-192.168.4.101:1187
-192.168.4.101:1188
+
+```lang-none
+192.168.4.100:8100
+192.168.4.100:8200
+192.168.4.100:8300
+192.168.4.100:8400
+192.168.4.101:8500
+192.168.4.101:8600
+192.168.4.101:8700
+192.168.4.101:8800
 ```
