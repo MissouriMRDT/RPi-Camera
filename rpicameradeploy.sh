@@ -9,5 +9,5 @@ mkdir RoveComm_Python
 put RoveComm_Python/rovecomm.py RoveComm_Python/rovecomm.py
 mkdir RoveComm_Python/manifest
 put RoveComm_Python/manifest/manifest.json RoveComm_Python/manifest/manifest.json
-mkdir Screenshots
+mkdir pictures
 EOF

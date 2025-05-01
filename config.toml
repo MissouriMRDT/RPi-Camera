@@ -39,29 +39,34 @@ ffmpeg_arguments = [
     "512k",
     "rtp://$ip:$port?pkt_size=1200",
 ]
-fswebcam_path = "/bin/fswebcam"
+picture_path = "/bin/ffmpeg"
 # Substitutions:
+# $index: camera index
 # $input: input device file
-# $output: output file
-fswebcam_arguments = [
+# $output: output file without extension
+picture_arguments = [
+    "-f",
+    "video4linux2",
     "-d",
     "$input",
-    "-r",
-    "2560x1440",
-    "--no-banner",
-    "--jpeg",
-    "85",
-    "--skip",
-    "100",
-    "$output",
+    "-vframes",
+    "4",
+    "$output.jpg",
 ]
-# Screenshot output directory
-screenshot_dir = "/home/pi/Screenshots"
+# Picture output directory
+picture_dir = "/home/pi/pictures"
 
 [manifest]
 device = "Camera1"
-stop_restart_command = "ToggleStream"
-screenshot_command = "TakePicture"
-screenshot_telemetry = "PictureTaken"
-connected_cameras_telemetry = "AvailableCameras"
-streams_telemetry = "StreamingCameras"
+
+[manifest.command]
+stop_restart = "ToggleStream"
+picture = "TakePicture"
+ffmpeg_arguments = "SetFFMPEGArguments"
+picture_arguments = "SetPictureArguments"
+
+[manifest.telemetry]
+picture = "PictureTaken"
+connected_cameras = "AvailableCameras"
+streams = "StreamingCameras"
+utilization = "Utilization"
