@@ -72,7 +72,7 @@ def start_stream(index):
         arguments.append(argument)
     logger.debug(f"ffmpeg arguments: {' '.join(arguments)}.")
     streamers[index] = subprocess.Popen(
-        arguments, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL
+        arguments, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
     logger.info(f"Started stream {index}.")
 
@@ -143,7 +143,7 @@ def take_picture(index, restart, picture_dir, data_id, picture_path, picture_arg
     try:
         before_count = len(os.listdir(picture_dir))
         logger.debug(f"picture arguments: {' '.join(arguments)}.")
-        subprocess.run(arguments, timeout=10)
+        subprocess.run(arguments)
         after_count = len(os.listdir(picture_dir))
     except:
         logger.exception(f"Failed to take picture from {index}.")
@@ -200,7 +200,6 @@ try:
         for port in config["ports"]:
             assert type(port) == int and port > 0
         assert type(config["ip"]) == str
-        assert type(config["nproc"]) == int
         assert type(config["ffmpeg_path"]) == str
         for argument in config["ffmpeg_arguments"]:
             assert type(argument) == str
@@ -260,46 +259,54 @@ while True:
         0 if streamer == None or streamer.poll() != None else 1
         for streamer in streamers
     )
-    logger.debug(f"Cameras {connected} connected {streaming} streaming.")
 
     utilization = []
     try:
         with open("/proc/stat", "r") as f:
             devices = {
-                line.split(" ")[0]: [float(element) for element in line.split(" ")[1:]]
+                line.split(" ")[0]: [
+                    float(element.strip()) if len(element) > 0 else 0.0
+                    for element in line.split(" ")[1:]
+                ]
                 for line in f.readlines()
             }
         total_cpu_time = [sum(devices[f"cpu{cpu}"]) for cpu in range(4)]
         idle_cpu_time = [devices[f"cpu{cpu}"][3] for cpu in range(4)]
         utilization.extend(
             [
-                int(100 - (i - t) / (li - lt) * 100)
-                for i, t, li, lt in zip(
+                int(100 - (i - li) / (t - lt) * 100)
+                for i, li, t, lt in zip(
                     idle_cpu_time,
-                    total_cpu_time,
                     last_idle_cpu_time,
+                    total_cpu_time,
                     last_total_cpu_time,
                 )
             ]
         )
+        last_total_cpu_time = total_cpu_time
+        last_idle_cpu_time = idle_cpu_time
     except:
         logger.exception("Failure decoding /proc/stat.")
         utilization.extend([0, 0, 0, 0])
     try:
         with open("/proc/meminfo", "r") as f:
-            mem_total = float(f.readline().strip().split(" ").split(" ")[-2])
+            mem_total = float(f.readline().strip().split(" ")[-2])
             f.readline()
-            mem_available = float(f.readline().strip().split(" ").split(" ")[-2])
-            utilization.append(int(mem_available / mem_total * 100))
+            mem_available = float(f.readline().strip().split(" ")[-2])
+            utilization.append(int(100 - mem_available / mem_total * 100))
     except:
         logger.exception("Failure decoding /proc/meminfo.")
         utilization.append(0)
     try:
         statvfs = os.statvfs("/")
-        utilization.append(int(statvfs.f_bavail / statvfs.f_blocks * 100))
+        utilization.append(int(100 - statvfs.f_bavail / statvfs.f_blocks * 100))
     except:
         logger.exception('Failure decoding os.statvfs("/").')
         utilization.append(0)
+
+    logger.debug(
+        f"connected: {connected}, streaming: {streaming}, utilization: {utilization}"
+    )
 
     rovecomm_node.write(
         rovecomm.packet(

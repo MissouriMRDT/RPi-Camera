@@ -39,19 +39,27 @@ ffmpeg_arguments = [
     "512k",
     "rtp://$ip:$port?pkt_size=1200",
 ]
-picture_path = "/bin/ffmpeg"
+picture_path = "/bin/fswebcam"
 # Substitutions:
 # $index: camera index
 # $input: input device file
 # $output: output file without extension
 picture_arguments = [
-    "-f",
-    "video4linux2",
-    "-d",
+    "--verbose",
+    "--device",
     "$input",
-    "-vframes",
+    "--palette",
+    "YUYV",
+    "--resolution",
+    "2560x1440",
+    "--frames",
     "4",
-    "$output.jpg",
+    "--skip",
+    "40",
+    "--png",
+    "9",
+    "--no-banner",
+    "$output.png"
 ]
 # Picture output directory
 picture_dir = "/home/pi/pictures"
