@@ -1,0 +1,101 @@
+# Output ports
+ports = [8100, 8200, 8300, 8400]
+# Output ip
+ip = "192.168.100.10"
+# Default brightness
+brightness = -0.2
+# Default contrast
+contrast = 0.6
+ffmpeg_path = "/bin/ffmpeg"
+# Arguments for ffmpeg
+# Substitutions:
+# $index: camera index
+# $input: input device file
+# $ip: output ip
+# $port: output port
+# $brightness: -1 - 1
+# $contrast: 0 - 2
+ffmpeg_arguments = [
+    "-hide_banner",
+    "-f",
+    "video4linux2",
+    "-video_size",
+    "320x240",
+    "-i",
+    "$input",
+    "-filter:v",
+    "eq=brightness=$brightness:contrast=$contrast,drawtext=text=%{gmtime\\\\:%X}:fontsize=32:fontcolor=red",
+    "-c:v",
+    "libvpx",
+    "-quality",
+    "good",
+    "-cpu-used",
+    "4",
+    "-g",
+    "5",
+    "-error-resilient",
+    "1",
+    "-auto-alt-ref",
+    "1",
+    "-f",
+    "rtp",
+    "-b:v",
+    "512k",
+    "-maxrate",
+    "512k",
+    "-v",
+    "0",
+    "rtp://$ip:$port?pkt_size=1200",
+]
+picture_path = "/bin/fswebcam"
+# Substitutions:
+# $index: camera index
+# $input: input device file
+# $output: output file without extension
+# $brightness: 0 - 100
+# $contrast: 0 - 100
+# $position
+picture_arguments = [
+    "--verbose",
+    "--device",
+    "$input",
+    "--palette",
+    "YUYV",
+    "--resolution",
+    "2560x1440",
+    "--frames",
+    "4",
+    "--set",
+    "Brightness=$brightness%",
+    "--set",
+    "Contrast=$contrast%",
+    "--skip",
+    "40",
+    "--png",
+    "9",
+    "--no-timestamp",
+    "--font",
+    "sans:20",
+    "--title",
+    "$position",
+    "$output.png"
+]
+# Picture output directory
+picture_dir = "/home/pi/pictures"
+
+[manifest]
+device = "Camera1"
+
+[manifest.command]
+stop_restart = "ToggleStream"
+picture = "TakePicture"
+brightness = "SetBrightness"
+contrast = "SetContrast"
+ffmpeg_arguments = "SetFFMPEGArguments"
+picture_arguments = "SetPictureArguments"
+
+[manifest.telemetry]
+picture = "PictureTaken"
+connected_cameras = "AvailableCameras"
+streams = "StreamingCameras"
+utilization = "Utilization"

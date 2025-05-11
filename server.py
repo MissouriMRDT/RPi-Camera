@@ -31,15 +31,53 @@ rovecomm_node = rovecomm.RoveComm(tcp_addr=("0.0.0.0", rovecomm.ROVECOMM_TCP_POR
 streamers = []
 config = {}
 
+position = (0.0, 0.0, 0.0)
+heading = 0.0
+accuracy = (0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+def lerp(x, x1, x2, y1, y2):
+    return ((y2 - y1) * x + x2 * y1 - x1 * y2) / (x2 - x1)
+
+
+def clamp(x, x1, x2):
+    return x1 if x < x1 else (x2 if x > x2 else x)
+
+
+def lerp_clamp(x, x1, x2, y1, y2):
+    return clamp(lerp(x, x1, x2, y1, y2), y1, y2)
+
+
+def update_position(packet):
+    global position
+    position = packet.data
+
+
+def update_heading(packet):
+    global heading
+    heading = packet.data[0]
+
+
+def update_accuracy(packet):
+    global accuracy
+    accuracy = packet.data
+
 
 def get_devices():
     """
     Return the first device file under each usb device returned by v4l2-ctl --list-devices
     """
-    output = subprocess.run(
-        ["v4l2-ctl", "--list-devices"], capture_output=True, timeout=5, encoding="utf_8"
-    ).stdout
-    return re.findall("\\(usb.+\\n[ \\t]*(.+)", output)
+    try:
+        output = subprocess.run(
+            ["v4l2-ctl", "--list-devices"],
+            capture_output=True,
+            timeout=10,
+            encoding="utf_8",
+        ).stdout
+        return re.findall("\\(usb.+\\n[ \\t]*(.+)", output)
+    except:
+        logger.warning("Failed to get devices.")
+        return []
 
 
 def start_stream(index):
@@ -64,6 +102,8 @@ def start_stream(index):
         ("$input", devices[index]),
         ("$ip", config["ip"]),
         ("$port", str(config["ports"][index])),
+        ("$brightness", str(clamp(brightness[index], -1, 1))),
+        ("$contrast", str(clamp(contrast[index], 0, 2))),
     ]
     arguments = ["taskset", "--cpu-list", str(index % 4), config["ffmpeg_path"]]
     for argument in config["ffmpeg_arguments"]:
@@ -71,9 +111,7 @@ def start_stream(index):
             argument = argument.replace(sub[0], sub[1])
         arguments.append(argument)
     logger.debug(f"ffmpeg arguments: {' '.join(arguments)}.")
-    streamers[index] = subprocess.Popen(
-        arguments, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
+    streamers[index] = subprocess.Popen(arguments)
     logger.info(f"Started stream {index}.")
 
 
@@ -133,6 +171,13 @@ def take_picture(index, restart, picture_dir, data_id, picture_path, picture_arg
         ("$index", str(index)),
         ("$input", devices[index]),
         ("$output", picture_dir + "/" + time.strftime("%Y%m%d_%H%M%S")),
+        ("$brightness", str(lerp_clamp(brightness[index], -1, 1, 0, 100))),
+        ("$contrast", str(lerp_clamp(contrast[index], 0, 2, 0, 100))),
+        (
+            "$position",
+            # f"{position[0]}\xb0N {position[1]}E\xb0 {position[2]}m {heading:.2f}\xb0 Horiz {accuracy[0]:.2f}m Vert {accuracy[1]:.2f}m Hdg {accuracy[2]:.2f}\xb0",
+            f"{position[0]}\xb0N {position[1]}\xb0E\xb1{accuracy[0]:.2f}m {position[2]}m\xb1{accuracy[1]:.2f}m {heading:.2f}\xb0\xb1{accuracy[2]:.2f}\xb0",
+        ),
     ]
     for argument in picture_arguments:
         for sub in substitutions:
@@ -161,6 +206,16 @@ def take_picture(index, restart, picture_dir, data_id, picture_path, picture_arg
 
     if restart:
         start_stream(index)
+
+
+def set_brightness(packet):
+    global brightness
+    brightness = packet.data
+
+
+def set_contrast(packet):
+    global contrast
+    contrast = packet.data
 
 
 def set_ffmpeg_arguments(packet):
@@ -200,6 +255,8 @@ try:
         for port in config["ports"]:
             assert type(port) == int and port > 0
         assert type(config["ip"]) == str
+        assert type(config["brightness"]) == float
+        assert type(config["contrast"]) == float
         assert type(config["ffmpeg_path"]) == str
         for argument in config["ffmpeg_arguments"]:
             assert type(argument) == str
@@ -210,6 +267,8 @@ try:
         assert type(config["manifest"]["device"]) == str
         assert type(config["manifest"]["command"]["stop_restart"]) == str
         assert type(config["manifest"]["command"]["picture"]) == str
+        assert type(config["manifest"]["command"]["brightness"]) == str
+        assert type(config["manifest"]["command"]["contrast"]) == str
         assert type(config["manifest"]["command"]["ffmpeg_arguments"]) == str
         assert type(config["manifest"]["command"]["picture_arguments"]) == str
         assert type(config["manifest"]["telemetry"]["picture"]) == str
@@ -219,6 +278,15 @@ try:
 except:
     logger.exception(f"Failed to read config file {config_path}.")
     exit(1)
+
+brightness = tuple([config["brightness"] for _ in range(len(config["ports"]))])
+contrast = tuple([config["contrast"] for _ in range(len(config["ports"]))])
+
+logger.info("Subscribing to rovecomm Nav.")
+try:
+    rovecomm_node.udp_node.subscribe(manifest["Nav"]["Ip"])
+except:
+    logger.exception("Failed to subscribe to rovecomm Nav.")
 
 logger.info("Registering rovecomm callbacks.")
 try:
@@ -236,6 +304,18 @@ try:
     )
     rovecomm_node.set_callback(
         manifest[config["manifest"]["device"]]["Commands"][
+            config["manifest"]["command"]["brightness"]
+        ]["dataId"],
+        set_brightness,
+    )
+    rovecomm_node.set_callback(
+        manifest[config["manifest"]["device"]]["Commands"][
+            config["manifest"]["command"]["contrast"]
+        ]["dataId"],
+        set_contrast,
+    )
+    rovecomm_node.set_callback(
+        manifest[config["manifest"]["device"]]["Commands"][
             config["manifest"]["command"]["ffmpeg_arguments"]
         ]["dataId"],
         set_ffmpeg_arguments,
@@ -246,8 +326,18 @@ try:
         ]["dataId"],
         set_picture_arguments,
     )
+    rovecomm_node.set_callback(
+        manifest["Nav"]["Telemetry"]["GPSLatLonAlt"]["dataId"], update_position
+    )
+    rovecomm_node.set_callback(
+        manifest["Nav"]["Telemetry"]["CompassData"]["dataId"], update_heading
+    )
+    rovecomm_node.set_callback(
+        manifest["Nav"]["Telemetry"]["AccuracyData"]["dataId"], update_accuracy
+    )
+
 except:
-    logger.exception(f"Failed to register rovecomm callbacks.")
+    logger.exception("Failed to register rovecomm callbacks.")
     exit(1)
 
 last_total_cpu_time = [1, 1, 1, 1]

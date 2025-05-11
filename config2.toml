@@ -1,7 +1,11 @@
 # Output ports
-ports = [8100, 8200, 8300, 8400]
+ports = [8500, 8600, 8700, 8800]
 # Output ip
 ip = "192.168.100.10"
+# Default brightness
+brightness = -0.2
+# Default contrast
+contrast = 0.6
 ffmpeg_path = "/bin/ffmpeg"
 # Arguments for ffmpeg
 # Substitutions:
@@ -9,6 +13,8 @@ ffmpeg_path = "/bin/ffmpeg"
 # $input: input device file
 # $ip: output ip
 # $port: output port
+# $brightness: -1 - 1
+# $contrast: 0 - 2
 ffmpeg_arguments = [
     "-hide_banner",
     "-f",
@@ -18,7 +24,7 @@ ffmpeg_arguments = [
     "-i",
     "$input",
     "-filter:v",
-    "eq=brightness=-0.2:contrast=0.6,drawtext=text=%{gmtime\\\\:%X}:fontsize=32:fontcolor=red",
+    "eq=brightness=$brightness:contrast=$contrast,drawtext=text=%{gmtime\\\\:%X}:fontsize=32:fontcolor=red",
     "-c:v",
     "libvpx",
     "-quality",
@@ -37,6 +43,8 @@ ffmpeg_arguments = [
     "512k",
     "-maxrate",
     "512k",
+    "-v",
+    "0",
     "rtp://$ip:$port?pkt_size=1200",
 ]
 picture_path = "/bin/fswebcam"
@@ -44,6 +52,9 @@ picture_path = "/bin/fswebcam"
 # $index: camera index
 # $input: input device file
 # $output: output file without extension
+# $brightness: 0 - 100
+# $contrast: 0 - 100
+# $position
 picture_arguments = [
     "--verbose",
     "--device",
@@ -54,22 +65,32 @@ picture_arguments = [
     "2560x1440",
     "--frames",
     "4",
+    "--set",
+    "Brightness=$brightness%",
+    "--set",
+    "Contrast=$contrast%",
     "--skip",
     "40",
     "--png",
     "9",
-    "--no-banner",
+    "--no-timestamp",
+    "--font",
+    "sans:20",
+    "--title",
+    "$position",
     "$output.png"
 ]
 # Picture output directory
 picture_dir = "/home/pi/pictures"
 
 [manifest]
-device = "Camera1"
+device = "Camera2"
 
 [manifest.command]
 stop_restart = "ToggleStream"
 picture = "TakePicture"
+brightness = "SetBrightness"
+contrast = "SetContrast"
 ffmpeg_arguments = "SetFFMPEGArguments"
 picture_arguments = "SetPictureArguments"
 

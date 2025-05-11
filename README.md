@@ -23,7 +23,8 @@ Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm co
 4. Configure `server.py`:
 
    - Make `server.py` executable.
-   - Edit `ports` and `manifest.device` in `config.toml`.
+   - Check `ports` and `manifest.device` in `config.toml`.
+   - If not cloning the repo on the pi, run `./rpicameradeploy 192.168.4.100 1` and `./rpicameradeploy 192.168.4.101 2` from another computer to copy the program files to each camera pi.
 
 5. `server.py` should be started on boot, after network has been established. Setup a systemd service:
 
@@ -35,6 +36,7 @@ Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm co
 6. Set a static IP:
 
    - In `sudo nmtui`, disable `wlan0` interface and configure and set a static IP for `eth0` that matches the RoveComm manifest.
+![nmtui](nmtui.png)
    - OR
    - `$ sudo nano /etc/network/interfaces`
    - Copy the contents of interfaces to the end.
