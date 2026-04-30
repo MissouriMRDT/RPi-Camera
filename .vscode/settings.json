@@ -1,7 +1,12 @@
 {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-python.black-formatter",
     "[markdown]": {
         "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+    },
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "[toml]": {
+        "editor.defaultFormatter": "tamasfe.even-better-toml"
     }
 }

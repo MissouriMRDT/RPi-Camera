@@ -22,9 +22,13 @@ Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm co
 
 4. Configure `server.py`:
 
-   - Make `server.py` executable.
-   - Check `ports` and `manifest.device` in `config.toml`.
-   - If not cloning the repo on the pi, run `./rpicameradeploy 192.168.4.100 1` and `./rpicameradeploy 192.168.4.101 2` from another computer to copy the program files to each camera pi.
+   - Read all comments in `config.toml`.
+   - If cloning the repo on another computer:
+      - Run `./rpicameradeploy 192.168.4.100 1` and `./rpicameradeploy 192.168.4.101 2` from another computer to `scp` (copy over ssh) the program files to each camera Pi. This command copies the entire program and the correct `config.toml`.
+   - If cloning this repository on the Pi:
+      - Make `server.py` executable.
+      - `server.py` reads its configuration from `config.toml` which it expects to find in the same directory as `server.py`. Copy `config1.toml` or `config2.toml` to `config.toml`.
+      - Update `device[].port` and `name` in `config.toml`.
 
 5. `server.py` should be started on boot, after network has been established. Setup a systemd service:
 
@@ -33,15 +37,15 @@ Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm co
    - Save and close.
    - `$ sudo systemctl enable cameras.service`
 
-6. Set a static IP:
-
-   - In `sudo nmtui`, disable `wlan0` interface and configure and set a static IP for `eth0` that matches the RoveComm manifest.
+6. Set a static IP using either method:
+   - `nmtui`
+      - In `sudo nmtui`, disable `wlan0` interface and configure and set a static IP for `eth0` that matches the RoveComm manifest.
 ![nmtui](nmtui.png)
-   - OR
-   - `$ sudo nano /etc/network/interfaces`
-   - Copy the contents of interfaces to the end.
-   - Change the IP accordingly (see "Port Info").
-   - Save and close.
+   - `/etc/network/interfaces`
+      - `$ sudo nano /etc/network/interfaces`
+      - Copy the contents of interfaces to the end.
+      - Change the IP accordingly (see "Port Info").
+      - Save and close.
 
 7. Check operation:
 
@@ -57,12 +61,12 @@ The Basestation IP (`config.toml` `ip`) should be `192.168.100.10`.
 The Raspberry Pi IP/port combos should be:
 
 ```lang-none
-192.168.4.100:8100
-192.168.4.100:8200
-192.168.4.100:8300
-192.168.4.100:8400
-192.168.4.101:8500
-192.168.4.101:8600
-192.168.4.101:8700
-192.168.4.101:8800
+192.168.4.100 8100
+192.168.4.100 8200
+192.168.4.100 8300
+192.168.4.100 8400
+192.168.4.101 8500
+192.168.4.101 8600
+192.168.4.101 8700
+192.168.4.101 8800
 ```
