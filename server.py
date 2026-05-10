@@ -220,7 +220,7 @@ def set_ffmpeg_arguments(packet):
             # Device index out of range, set all arguments
             for device in config["device"]:
                 device["ffmpeg_arguments"] = list(arguments)
-        logger.info(f"Set device.*.ffmpeg_arguments to {arguments}.")
+            logger.info(f"Set device.*.ffmpeg_arguments to {arguments}.")
     except UnicodeDecodeError:
         logger.exception("Failed to decode ffmpeg_arguments.")
         return
@@ -288,15 +288,6 @@ logger.info("Subscribing to rovecomm Nav.")
 try:
     rovecomm_node.udp_node.subscribe(manifest["Nav"]["Ip"])
 except Exception:
-    logger.exception("Failed to subscribe to rovecomm Nav.")
-
-brightness = tuple([config["brightness"] for _ in range(len(config["ports"]))])
-contrast = tuple([config["contrast"] for _ in range(len(config["ports"]))])
-
-logger.info("Subscribing to rovecomm Nav.")
-try:
-    rovecomm_node.udp_node.subscribe(manifest["Nav"]["Ip"])
-except:
     logger.exception("Failed to subscribe to rovecomm Nav.")
 
 logger.info("Registering rovecomm callbacks.")
@@ -402,14 +393,6 @@ while True:
             config["name"],
             "Telemetry",
             "Utilization",
-            utilization,
-        )
-    )
-    rovecomm_node.write(
-        rovecomm.packet(
-            config["manifest"]["device"],
-            "Telemetry",
-            config["manifest"]["telemetry"]["utilization"],
             utilization,
         )
     )
