@@ -5,8 +5,6 @@ if [ $# != 2 ]; then
 fi
 
 sftp pi@$1 << EOF
-lcd ~/RPi-Camera
-cd ~/
 put server.py server.py
 chmod 744 server.py
 put config$2.toml config.toml

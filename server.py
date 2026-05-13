@@ -7,6 +7,7 @@ import tomllib
 import threading
 import logging
 import re
+import zmq
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -207,42 +208,146 @@ def take_picture(index, restart, picture_dir, data_id, picture_path, picture_arg
         start_stream(index)
 
 
-def set_ffmpeg_arguments(packet):
+def get_index_and_utf8_array(data):
+    """
+    Decode 0x00 terminated 0x1f delimited character array into an array of utf-8 strings.
+    First byte is the device index.
+    """
     try:
-        # Decode 0x04 terminated 0x1f delimited character array into an array of utf-8 strings.
-        # Byte afte 0x04 is the device index.
-        list_, _, i = b"".join(packet.data).partition(b"\x04")
-        arguments = [argument.decode("utf-8") for argument in list_.split(b"\x1f")]
-        if len(i) > 0 and i[0] < len(config["device"]):
-            config["device"][i[0]]["ffmpeg_arguments"] = arguments
-            logger.info(f"Set device.{i[0]}.ffmpeg_arguments to {arguments}.")
-        else:
-            # Device index out of range, set all arguments
-            for device in config["device"]:
-                device["ffmpeg_arguments"] = list(arguments)
-            logger.info(f"Set device.*.ffmpeg_arguments to {arguments}.")
-    except UnicodeDecodeError:
-        logger.exception("Failed to decode ffmpeg_arguments.")
+        if len(data) < 2:
+            return (-1, [])
+        i = data[0][0]
+        try:
+            list_ = b"".join(data[1 : data.index(b"\x00", 1)])
+        except ValueError:
+            return (i, [])
+        return (i, [argument.decode("utf-8") for argument in list_.split(b"\x1f")])
+    except Exception:
+        return (-1, [])
+
+
+def get_index_and_array(data):
+    """
+    Decode 0x00 terminated 0x1f delimited character array into an array of utf-8 strings.
+    First byte is the device index.
+    """
+    try:
+        if len(data) < 2:
+            return (-1, [])
+        i = data[0][0]
+        try:
+            list_ = b"".join(data[1 : data.index(b"\x00", 1)])
+        except ValueError:
+            return (i, [])
+        return (i, list_.split(b"\x1f"))
+    except Exception:
+        return (-1, [])
+
+
+def set_ffmpeg_arguments(packet):
+    index, arguments = get_index_and_utf8_array(packet.data)
+    if len(arguments) == 0:
+        logger.warning("Failed to decode SetFFMPEGArguments.")
         return
+
+    if index >= 0 and index < len(config["device"]):
+        config["device"][index]["ffmpeg_arguments"] = arguments
+        logger.info(f"Set device.{index}.ffmpeg_arguments to {arguments}.")
+    else:
+        # Set all arguments
+        for device in config["device"]:
+            device["ffmpeg_arguments"] = list(arguments)
+        logger.info(f"Set device.*.ffmpeg_arguments to {arguments}.")
 
 
 def set_picture_arguments(packet):
-    try:
-        # Decode 0x04 terminated 0x1f delimited character array into an array of utf-8 strings.
-        # Byte afte 0x04 is the device index.
-        list_, _, i = b"".join(packet.data).partition(b"\x04")
-        arguments = [argument.decode("utf-8") for argument in list_.split(b"\x1f")]
-        if len(i) > 0 and i[0] < len(config["device"]):
-            config["device"][i[0]]["picture_arguments"] = arguments
-            logger.info(f"Set device.{i[0]}.picture_arguments to {arguments}.")
-        else:
-            # Device index out of range, set all arguments
-            for device in config["device"]:
-                device["picture_arguments"] = list(arguments)
-        logger.info(f"Set device.*.picture_arguments to {arguments}.")
-    except Exception:
-        logger.exception("Failed to decode picture_arguments.")
+    index, arguments = get_index_and_utf8_array(packet.data)
+    if len(arguments) == 0:
+        logger.warning("Failed to decode SetPictureArguments.")
         return
+
+    if index >= 0 and index < len(config["device"]):
+        config["device"][index]["picture_arguments"] = arguments
+        logger.info(f"Set device.{index}.picture_arguments to {arguments}.")
+    else:
+        # Set all arguments
+        for device in config["device"]:
+            device["picture_arguments"] = list(arguments)
+        logger.info(f"Set device.*.picture_arguments to {arguments}.")
+
+
+def zmq_command_callback(packet):
+    index, commands = get_index_and_array(packet.data)
+    if len(commands) == 0:
+        logger.warning("Failed to decode ZMQCommands.")
+
+    if index < 0 or index >= len(config["device"]):
+        logger.warning(
+            f"Cannot send zmq command to stream {index} with {len(devices)} devices."
+        )
+        return
+    if streamers[index] is None or streamers[index].poll() is not None:
+        logger.warning(f"Cannot send zmq command to stopped stream {index}.")
+        return
+
+    threading.Thread(
+        target=zmq_command,
+        args=(
+            index,
+            commands,
+        ),
+    ).start()
+
+
+def zmq_command(index, commands):
+    try:
+        context = zmq.Context().instance()
+        with context.socket(zmq.REQ) as socket:
+            socket.CONNECT_TIMEOUT = 1000
+            socket.RCVTIMEO = 1000
+            socket.SNDTIMEO = 1000
+            socket.connect(f"tcp://127.0.0.1:555{index}")
+            for command in commands:
+                socket.send(command)
+                socket.recv()
+    except Exception:
+        logger.exception("Failed to send zmq command.")
+
+
+def v4l2_set_controls_callback(packet):
+    if len(packet.data) < 2:
+        logger.warning("Failed to decode V4L2SetControls.")
+
+    index = packet.data[0][0]
+    try:
+        argument = b"".join(packet.data[1 : packet.index(b"\x00", 1)]).decode("utf-8")
+    except Exception:
+        logger.warning("Failed to decode V4L2SetControls.")
+        return
+    threading.Thread(
+        target=v4l2_set_controls,
+        args=(
+            index,
+            argument,
+        ),
+    ).start()
+
+
+def v4l2_set_controls(index, argument):
+    devices = get_devices()
+    if index >= len(devices):
+        logger.warning(
+            f"Cannot set v4l2 controls for device {index} with {len(devices)} devices."
+        )
+        return
+
+    logger.info(
+        f"Setting device {index} ({devices[index]}) v4l2 controls to {argument}."
+    )
+    try:
+        subprocess.run(["v4l2-ctl", "-d", devices[index], "--set-ctrl", argument])
+    except Exception:
+        logger.exception("Failed to change v4l2 controls.")
 
 
 config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.toml")
@@ -308,6 +413,14 @@ try:
     rovecomm_node.set_callback(
         camera_commands["SetPictureArguments"]["dataId"],
         set_picture_arguments,
+    )
+    rovecomm_node.set_callback(
+        camera_commands["ZMQCommands"]["dataId"],
+        zmq_command_callback,
+    )
+    rovecomm_node.set_callback(
+        camera_commands["V4L2SetControls"]["dataId"],
+        v4l2_set_controls_callback,
     )
     nav_telemetry = manifest["Nav"]["Telemetry"]
     rovecomm_node.set_callback(nav_telemetry["GPSLatLonAlt"]["dataId"], update_position)
@@ -396,4 +509,4 @@ while True:
             utilization,
         )
     )
-    time.sleep(5)
+    time.sleep(1)

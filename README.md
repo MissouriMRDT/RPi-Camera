@@ -18,7 +18,8 @@ Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm co
 
    - `$ sudo apt update`
    - `$ sudo apt upgrade`
-   - `$ sudo apt install ffmpeg v4l-utils vsftpd fswebcam`
+   - `$ sudo apt install ffmpeg v4l-utils vsftpd fswebcam python3 python3-pip`
+   - `$ python3 -m pip install --user --break-system-packages pyzmq`
 
 4. Configure `server.py`:
 
