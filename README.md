@@ -21,34 +21,43 @@ Script to stream USB cameras from Raspberry PI 5 to Basestation with RoveComm co
    - `$ sudo apt install ffmpeg v4l-utils vsftpd fswebcam python3 python3-pip`
    - `$ python3 -m pip install --user --break-system-packages pyzmq`
 
-4. Configure `server.py`:
+4. Clone the repository to the home directory (/home/pi)
+   - Clone recursively to get rovecomm as a submodule. `$ git clone --recurse-submodules https://github.com/MissouriMRDT/RPi-Camera.git`.
+   - If the repository is already cloned, make sure to initialize submodules. `$ git submodule update --init --recursive`.
+
+5. Configure `server.py`:
 
    - Read all comments in `config.toml`.
    - If cloning the repo on another computer:
       - Run `./rpicameradeploy 192.168.4.100 1` and `./rpicameradeploy 192.168.4.101 2` from another computer to `scp` (copy over ssh) the program files to each camera Pi. This command copies the entire program and the correct `config.toml`.
    - If cloning this repository on the Pi:
-      - Make `server.py` executable.
+      - Make `server.py` executable with `$ chmod +x server.py`.
       - `server.py` reads its configuration from `config.toml` which it expects to find in the same directory as `server.py`. Copy `config1.toml` or `config2.toml` to `config.toml`.
       - Update `device[].port` and `name` in `config.toml`.
 
-5. `server.py` should be started on boot, after network has been established. Setup a systemd service:
+6. `server.py` should be started on boot, after network has been established. Setup a systemd service:
 
-   - `$ sudo systemctl edit --force --full cameras.service`
    - Copy the contents of cameras.service into the text editor.
-   - Save and close.
+   - `$ sudo cp ./cameras.service /etc/systemd/system/cameras.service`
+   - Enable the service.
    - `$ sudo systemctl enable cameras.service`
 
-6. Set a static IP using either method:
+7. Set a static IP using either method:
    - `nmtui`
-      - In `sudo nmtui`, disable `wlan0` interface and configure and set a static IP for `eth0` that matches the RoveComm manifest.
+   - In `sudo nmtui`, disable `wlan0` interface and configure and set a static IP for `eth0` that matches the RoveComm manifest.
+
 ![nmtui](nmtui.png)
+   
    - `/etc/network/interfaces`
-      - `$ sudo nano /etc/network/interfaces`
-      - Copy the contents of interfaces to the end.
-      - Change the IP accordingly (see "Port Info").
+      - `$ sudo cp ./interfaces /etc/network/interfaces`
+      - Ensure the address section of the eth0 interfaces is configured to point to the IP address of basestation (see "Port Info") by editing with `$ sudo nano /etc/network/interfaces`.
       - Save and close.
 
-7. Check operation:
+   - Disable wifi. Run `$ sudo nano /boot/firmware/config.txt` and add the line `dtoverlay=disable-wifi` to the very bottom of the file.
+      - Save the file with Ctrl+S, then Ctrl+X to exit nano.
+      - Restart to make the changes take effect. `$ sudo reboot`
+
+8. Check operation:
 
    - Start with `sudo systemctl start cameras`.
    - Monitor status with `sudo systemctl status cameras`.

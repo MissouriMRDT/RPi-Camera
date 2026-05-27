@@ -6,8 +6,8 @@ After=network-online.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi
-ExecStart=/home/pi/server.py
+WorkingDirectory=/home/pi/RPi-Camera
+ExecStart=/home/pi/RPi-Camera/server.py
 KillMode=process
 
 [Install]
