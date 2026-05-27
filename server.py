@@ -30,6 +30,8 @@ manifest = rovecomm.get_manifest()
 rovecomm_node = rovecomm.RoveComm(tcp_addr=("0.0.0.0", rovecomm.ROVECOMM_TCP_PORT))
 
 streamers = []
+started_at = []
+auto_restart = []  # True when rovecomm requests start and false when rovecomm requests stop
 config = {}
 
 # [Lat, Lon, Alt, HorizontalAccuracy, VerticalAccuracy, HeadingAccuracy, FixType, IsDifferential]
@@ -90,6 +92,11 @@ def start_stream(index):
             f"Cannot start stream {index} with {config['device']} configured devices."
         )
         return
+
+    auto_restart[index] = False
+    if streamers[index] is not None:
+        stop_stream(index)
+
     device_config = config["device"][index]
     device = get_devices()[index]
 
@@ -97,10 +104,9 @@ def start_stream(index):
         logger.warning(
             f"Cannot start stream {index}: Device {device_config['id']} not found."
         )
+        started_at[index] = time.time()
+        auto_restart[index] = True
         return
-
-    if streamers[index] is not None:
-        stop_stream(index)
 
     substitutions = [
         ("$index", str(index)),
@@ -115,14 +121,23 @@ def start_stream(index):
             argument = argument.replace(sub[0], sub[1])
         arguments.append(argument)
     logger.debug(f"ffmpeg arguments: {' '.join(arguments)}.")
-    streamers[index] = subprocess.Popen(arguments)
+    try:
+        streamers[index] = subprocess.Popen(arguments)
+    finally:
+        started_at[index] = time.time()
+        auto_restart[index] = True
     logger.info(f"Started stream {index}.")
 
 
 def stop_stream(index):
     logger.info(f"Stopping stream {index}.")
-    if index >= len(streamers) or streamers[index] is None:
-        logger.warning(f"Stream {index} does not exist.")
+    if index >= len(config["device"]):
+        logger.warning(
+            f"Cannot stop stream {index} with {config['device']} configured devices."
+        )
+    auto_restart[index] = False
+    if streamers[index] is None:
+        logger.warning(f"Stream {index} already stopped.")
         return
     try:
         streamers[index].terminate()
@@ -154,7 +169,7 @@ def take_picture_callback(packet):
             config["picture_dir"],
             manifest[config["name"]]["Telemetry"]["PictureTaken"]["dataId"],
             config["picture_path"],
-            config["picture_arguments"],
+            config["device"][index]["picture_arguments"],
         ),
     ).start()
 
@@ -361,6 +376,7 @@ except Exception:
 try:
     assert type(config["name"]) is str
     assert type(config["ip"]) is str
+    assert type(config["auto_restart"]) is int
     assert type(config["ffmpeg_path"]) is str
     assert type(config["picture_path"]) is str
     assert type(config["picture_dir"]) is str
@@ -385,6 +401,8 @@ try:
             # Copy default picture_arguments
             device["picture_arguments"] = list(config["picture_arguments"])
         streamers.append(None)
+        started_at.append(0)
+        auto_restart.append(False)
 except Exception:
     logger.exception("Invalid config file.")
     exit(1)
@@ -487,10 +505,26 @@ while True:
     except Exception:
         logger.exception('Failure decoding os.statvfs("/").')
         utilization.append(0)
+    try:
+        with open("/sys/class/thermal/thermal_zone0/temp") as f:
+            utilization.append(int(f.read().strip()) // 1000)
+    except Exception:
+        logger.exception("/sys/class/thermal/thermal_zone0/temp")
+        utilization.append(0)
 
     logger.debug(
-        f"connected: {connected:04b}, streaming: {streaming:04b}, utilization: {utilization}"
+        f"connected: {connected:04b}, streaming: {streaming:04b}, utilization: {utilization}, running: {auto_restart}, started_at: {started_at}"
     )
+
+    now = time.time()
+    for index, s in enumerate(started_at):
+        if (
+            auto_restart[index]
+            and streaming & (1 << index) == 0
+            and now > s + config["auto_restart"]
+        ):
+            logging.info(f"Automatically restarting stream {index}.")
+            threading.Thread(target=start_stream, args=(index,)).start()
 
     rovecomm_node.write(
         rovecomm.packet(
