@@ -1,49 +1,27 @@
 name = "Camera1"                  # This device's name in the RoveComm manifest
 ip = "192.168.100.10"             # Output ip
 auto_restart = 5                  # Automatically restart this many seconds after the last restart
-ffmpeg_path = "/bin/ffmpeg"
+binary_path = "/bin/gst-launch"
 picture_path = "/bin/fswebcam"
 picture_dir = "/home/pi/pictures" # Picture output directory
-# Arguments for ffmpeg
+# Arguments for the camera streaming binary
 # Substitutions:
 # $index: camera index
 # $input: input device file
 # $ip: output ip
 # $port: output port
 # $now: ISO 8601
-ffmpeg_arguments = [
-    "-hide_banner",
-    "-f",
-    "video4linux2",
-    "-framerate",
-    "20",
-    "-video_size",
-    "800x600",
-    "-i",
-    "$input",
-    "-filter:v",
-    "zmq=bind_address='tcp\\://127.0.0.1\\:555$index',drawtext=text=|||||||||:fontsize=16:x='abs(mod(t*(w-text_w)*0.5,(w-text_w)*2)-(w-text_w))':box=1:boxcolor=#8c00ff:fontcolor=#8c00ff",
-    "-codec:v",
-    "libvpx",
-    "-quality",
-    "good",
-    "-cpu-used",
-    "4",
-    "-g",
-    "5",
-    "-error-resilient",
-    "1",
-    "-auto-alt-ref",
-    "1",
-    "-f",
-    "rtp",
-    "-b:v",
-    "1M",
-    "-maxrate",
-    "1M",
-    "-loglevel",
-    "16",
-    "rtp://$ip:$port?pkt_size=1200",
+binary_arguments = [
+    "v4l2src",
+    "device=$input !",
+    "'video/x-raw-yuv,width=800,height=600'",
+    "nvvidconv",
+    "!",
+    "nvv4l2h264enc",
+    "!",
+    "h264parse",
+    "!",
+    "udpsink host=$ip port=$port",
 ]
 # Substitutions:
 # $index: camera index
@@ -69,22 +47,38 @@ picture_arguments = [
     "$output.png",
 ]
 
-# ffmpeg_arguments and picture_arguments can be overriden in [[device]]
+# binary_arguments and picture_arguments can be overriden in [[device]]
 # [[device]]
 # id = Related to usb port, corresponds to id in parentheses in `v4l2-ctl --list-devices` e.g., "usb-xhci-hcd.0-2"
 # port = Output port, e.g., 8100
 [[device]]
-id = "usb-xhci-hcd.0-1"
+id = "todo"
 port = 8100
 
 [[device]]
-id = "usb-xhci-hcd.0-2"
+id = "todo"
 port = 8200
 
 [[device]]
-id = "usb-xhci-hcd.1-1"
+id = "todo"
 port = 8300
 
 [[device]]
-id = "usb-xhci-hcd.1-2"
+id = "todo"
 port = 8400
+
+[[device]]
+id = "todo"
+port = 8500
+
+[[device]]
+id = "todo"
+port = 8600
+
+[[device]]
+id = "todo"
+port = 8700
+
+[[device]]
+id = "todo"
+port = 8800

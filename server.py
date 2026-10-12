@@ -115,12 +115,12 @@ def start_stream(index):
         ("$port", str(device_config["port"])),
         ("$now", time.strftime("%Y%m%d_%H%M%S")),
     ]
-    arguments = ["taskset", "--cpu-list", str(index % 4), config["ffmpeg_path"]]
-    for argument in device_config["ffmpeg_arguments"]:
+    arguments = ["taskset", "--cpu-list", str(index % 4), config["binary_path"]]
+    for argument in device_config["binary_arguments"]:
         for sub in substitutions:
             argument = argument.replace(sub[0], sub[1])
         arguments.append(argument)
-    logger.debug(f"ffmpeg arguments: {' '.join(arguments)}.")
+    logger.debug(f"binary arguments: {' '.join(arguments)}.")
     try:
         streamers[index] = subprocess.Popen(arguments)
     finally:
@@ -259,20 +259,20 @@ def get_index_and_array(data):
         return (-1, [])
 
 
-def set_ffmpeg_arguments(packet):
+def set_stream_arguments(packet):
     index, arguments = get_index_and_utf8_array(packet.data)
     if len(arguments) == 0:
-        logger.warning("Failed to decode SetFFMPEGArguments.")
+        logger.warning("Failed to decode SetStreamArguments.")
         return
 
     if index >= 0 and index < len(config["device"]):
-        config["device"][index]["ffmpeg_arguments"] = arguments
-        logger.info(f"Set device.{index}.ffmpeg_arguments to {arguments}.")
+        config["device"][index]["binary_arguments"] = arguments
+        logger.info(f"Set device.{index}.binary_arguments to {arguments}.")
     else:
         # Set all arguments
         for device in config["device"]:
-            device["ffmpeg_arguments"] = list(arguments)
-        logger.info(f"Set device.*.ffmpeg_arguments to {arguments}.")
+            device["binary_arguments"] = list(arguments)
+        logger.info(f"Set device.*.binary_arguments to {arguments}.")
 
 
 def set_picture_arguments(packet):
@@ -377,10 +377,10 @@ try:
     assert type(config["name"]) is str
     assert type(config["ip"]) is str
     assert type(config["auto_restart"]) is int
-    assert type(config["ffmpeg_path"]) is str
+    assert type(config["binary_path"]) is str
     assert type(config["picture_path"]) is str
     assert type(config["picture_dir"]) is str
-    for argument in config["ffmpeg_arguments"]:
+    for argument in config["binary_arguments"]:
         assert type(argument) is str
     for argument in config["picture_arguments"]:
         assert type(argument) is str
@@ -388,12 +388,12 @@ try:
     for device in config["device"]:
         assert type(device["port"]) is int and device["port"] > 0
         assert type(device["id"]) is str
-        if "ffmpeg_arguments" in device:
-            for argument in config["ffmpeg_arguments"]:
+        if "binary_arguments" in device:
+            for argument in config["binary_arguments"]:
                 assert type(argument) is str
         else:
-            # Copy default ffmpeg_arguments
-            device["ffmpeg_arguments"] = list(config["ffmpeg_arguments"])
+            # Copy default binary_arguments
+            device["binary_arguments"] = list(config["binary_arguments"])
         if "picture_arguments" in device:
             for argument in config["picture_arguments"]:
                 assert type(argument) is str
@@ -424,9 +424,10 @@ try:
         camera_commands["ToggleStream"]["dataId"],
         toggle_stream_callback,
     )
+    # TODO update rovecomm manifest to remove ffmpeg references
     rovecomm_node.set_callback(
-        camera_commands["SetFFMPEGArguments"]["dataId"],
-        set_ffmpeg_arguments,
+        camera_commands["SetStreamArguments"]["dataId"],
+        set_stream_arguments,
     )
     rovecomm_node.set_callback(
         camera_commands["SetPictureArguments"]["dataId"],
